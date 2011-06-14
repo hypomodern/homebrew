@@ -4,6 +4,8 @@ class Nginx < Formula
   homepage 'http://nginx.org/'
   url 'http://nginx.org/download/nginx-1.0.4.tar.gz'
   md5 'd23f6e6b07b57ac061e790b1ed64bb98'
+  UPLOAD_MODULE_VERSION = '2.2.0'
+  UPLOAD_PROGRESS_MODULE_VERSION = '0.8.2'
 
   depends_on 'pcre'
 
@@ -12,13 +14,21 @@ class Nginx < Formula
   # Changes default port to 8080
   # Tell configure to look for pcre in HOMEBREW_PREFIX
   def patches
+    if ARGV.include?( '--with-upload-module' )
+      `curl http://www.grid.net.ru/nginx/download/nginx_upload_module-#{UPLOAD_MODULE_VERSION}.tar.gz | tar -xzf -`
+    end
+    if ARGV.include?( '--with-upload-progress-module' )
+      `mkdir upload_progress-#{UPLOAD_PROGRESS_MODULE_VERSION} && curl -L https://github.com/masterzen/nginx-upload-progress-module/tarball/v#{UPLOAD_PROGRESS_MODULE_VERSION} | tar -C upload_progress-#{UPLOAD_PROGRESS_MODULE_VERSION} -zxf - && mv upload_progress-#{UPLOAD_PROGRESS_MODULE_VERSION}/**/* upload_progress-#{UPLOAD_PROGRESS_MODULE_VERSION}/`
+    end
     DATA
   end
 
   def options
     [
       ['--with-passenger', "Compile with support for Phusion Passenger module"],
-      ['--with-webdav',    "Compile with support for WebDAV module"]
+      ['--with-webdav',    "Compile with support for WebDAV module"],
+      ['--with-upload-module', 'Compile support for upload module (http://www.grid.net.ru/nginx/upload.en.html)'],
+      ['--with-upload-progress-module', 'Compile support for upload progress module (https://github.com/masterzen/nginx-upload-progress-module)']
     ]
   end
 
@@ -45,6 +55,8 @@ class Nginx < Formula
 
     args << passenger_config_args if ARGV.include? '--with-passenger'
     args << "--with-http_dav_module" if ARGV.include? '--with-webdav'
+    args << "--add-module=nginx_upload_module-#{UPLOAD_MODULE_VERSION}" if ARGV.include? '--with-upload-module'
+    args << "--add-module=upload_progress-#{UPLOAD_PROGRESS_MODULE_VERSION}" if ARGV.include? '--with-upload-progress-module'
 
     system "./configure", *args
     system "make install"
